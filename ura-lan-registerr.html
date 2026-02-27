@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN Unit Register — ITID Dept · URA</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Firebase SDKs (compat - works in plain HTML) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<!-- PDF Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root {
+  --ura-yellow: #F5C800;
+  --ura-blue: #003087;
+  --ura-light-blue: #4A90C4;
+  --ura-dark: #0A1628;
+  --ura-mid: #1A2E4A;
+  --ura-surface: #0D1F35;
+  --ura-card: #112236;
+  --ura-border: rgba(74,144,196,0.25);
+  --ura-text: #CBD8E8;
+  --ura-muted: #5A7A99;
+  --success: #22C55E;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --radius: 10px;
+  --font-head: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);background:var(--ura-dark);color:var(--ura-text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(74,144,196,0.04) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(74,144,196,0.04) 40px);pointer-events:none;z-index:0}
+
+/* ── LOADER ── */
+#globalLoader{position:fixed;inset:0;background:var(--ura-dark);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.loader-logo{width:80px;height:80px;background:white;border-radius:14px;display:flex;align-items:center;justify-content:center;padding:6px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,200,0,0.4)}50%{box-shadow:0 0 0 16px rgba(245,200,0,0)}}
+.loader-text{font-family:var(--font-head);font-size:1rem;letter-spacing:3px;text-transform:uppercase;color:var(--ura-muted)}
+.loader-bar{width:200px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden}
+.loader-bar-fill{height:100%;background:var(--ura-yellow);border-radius:2px;animation:loadBar 1.8s ease-in-out infinite}
+@keyframes loadBar{0%{width:0;margin-left:0}50%{width:100%;margin-left:0}100%{width:0;margin-left:100%}}
+
+/* ── AUTH ── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;z-index:1}
+.auth-card{background:var(--ura-card);border:1px solid var(--ura-border);border-radius:14px;padding:40px;width:100%;max-width:430px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo-inner{width:80px;height:80px;background:white;border-radius:12px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;padding:5px}
+.auth-logo h2{font-family:var(--font-head);font-size:1.35rem;font-weight:800;letter-spacing:2px;color:white}
+.auth-logo p{font-size:0.7rem;color:var(--ura-muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+.auth-tabs{display:flex;border:1px solid var(--ura-border);border-radius:8px;overflow:hidden;margin-bottom:24px}
+.auth-tab{flex:1;padding:10px;text-align:center;font-family:var(--font-head);font-weight:600;font-size:0.88rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:none;background:none;color:var(--ura-muted);transition:all 0.2s}
+.auth-tab.active{background:var(--ura-yellow);color:var(--ura-dark)}
+.auth-form{display:flex;flex-direction:column;gap:14px}
+.divider{display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--ura-muted);font-size:0.8rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--ura-border)}
+.btn-google{width:100%;background:white;color:#333;display:flex;align-items:center;justify-content:center;gap:10px;padding:11px;border-radius:7px;border:none;cursor:pointer;font-family:var(--font-body);font-weight:600;font-size:0.9rem;transition:box-shadow 0.2s}
+.btn-google:hover{box-shadow:0 4px 15px rgba(0,0,0,0.3)}
+.auth-err{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#FCA5A5;padding:10px 14px;border-radius:7px;font-size:0.85rem;display:none}
+
+/* ── HEADER ── */
+.site-header{position:relative;z-index:10;background:linear-gradient(135deg,var(--ura-dark) 0%,var(--ura-mid) 100%);border-bottom:3px solid var(--ura-yellow);box-shadow:0 4px 30px rgba(0,0,0,0.5)}
+.header-top{display:flex;align-items:center;gap:20px;padding:16px 36px}
+.logo-wrap{flex-shrink:0;width:84px;height:84px;background:white;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:5px;box-shadow:0 4px 20px rgba(245,200,0,0.3)}
+.header-title{flex:1}
+.header-title h1{font-family:var(--font-head);font-size:2.1rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:white;line-height:1}
+.header-title h1 span{color:var(--ura-yellow)}
+.header-title p{font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--ura-muted);margin-top:5px;font-weight:500}
+.header-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
+.header-badge{background:var(--ura-yellow);color:var(--ura-dark);font-family:var(--font-head);font-weight:700;font-size:0.75rem;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:20px}
+.user-pill{display:flex;align-items:center;gap:8px;background:var(--ura-surface);border:1px solid var(--ura-border);border-radius:20px;padding:5px 14px 5px 5px;cursor:pointer;transition:border-color 0.2s}
+.user-pill:hover{border-color:var(--ura-yellow)}
+.user-avatar{width:30px;height:30px;background:var(--ura-blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:700;font-size:0.9rem;color:white;overflow:hidden}
+.user-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.user-name{font-size:0.85rem;font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-nav{display:flex;gap:0;border-top:1px solid var(--ura-border);padding:0 36px}
+.nav-tab{padding:12px 22px;font-family:var(--font-head);font-weight:600;font-size:0.92rem;letter-spacing:1px;text-transform:uppercase;color:var(--ura-muted);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent;transition:all 0.2s;position:relative;bottom:-3px}
+.nav-tab:hover{color:var(--ura-text)}
+.nav-tab.active{color:var(--ura-yellow);border-bottom-color:var(--ura-yellow)}
+
+/* ── LAYOUT ── */
+.app-wrap{position:relative;z-index:1}
+.page{display:none}
+.page.active{display:block}
+.container{max-width:100%;margin:0 auto;padding:24px 32px}
+
+/* ── CARDS ── */
+.card{background:var(--ura-card);border:1px solid var(--ura-border);border-radius:var(--radius);padding:26px;margin-bottom:22px;box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.card-title{font-family:var(--font-head);font-size:1.1rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ura-yellow);margin-bottom:20px;display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--ura-border)}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(256px,1fr));gap:17px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+label{font-size:0.7rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--ura-muted)}
+input,select,textarea{width:100%;background:var(--ura-surface);border:1px solid var(--ura-border);color:var(--ura-text);padding:10px 13px;border-radius:7px;font-family:var(--font-body);font-size:0.93rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--ura-light-blue);box-shadow:0 0 0 3px rgba(74,144,196,0.15)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235A7A99' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;cursor:pointer}
+select option{background:var(--ura-surface)}
+textarea{resize:vertical;min-height:78px}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.5) brightness(1.5);cursor:pointer}
+.sn-display{background:var(--ura-surface);border:1px solid var(--ura-yellow);color:var(--ura-yellow);font-family:var(--font-head);font-weight:700;font-size:1.1rem;letter-spacing:2px;padding:10px 13px;border-radius:7px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;font-family:var(--font-head);font-weight:700;font-size:0.92rem;letter-spacing:1.5px;text-transform:uppercase;border-radius:7px;border:none;cursor:pointer;transition:all 0.2s}
+.btn-primary{background:var(--ura-yellow);color:var(--ura-dark)}
+.btn-primary:hover{background:#ffd700;transform:translateY(-1px);box-shadow:0 4px 15px rgba(245,200,0,0.3)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-secondary{background:transparent;color:var(--ura-text);border:1px solid var(--ura-border)}
+.btn-secondary:hover{border-color:var(--ura-light-blue);color:white}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.btn-danger:hover{background:var(--danger);color:white}
+.btn-sm{padding:6px 13px;font-size:0.78rem}
+.form-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--ura-border)}
+
+/* ── SPINNER ── */
+.spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,0.2);border-top-color:var(--ura-dark);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:0.82rem;table-layout:fixed}
+thead tr{background:linear-gradient(90deg,var(--ura-blue),var(--ura-mid))}
+thead th{padding:10px 10px;font-family:var(--font-head);font-weight:700;font-size:0.74rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--ura-yellow);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tbody tr{border-bottom:1px solid var(--ura-border);transition:background 0.15s}
+tbody tr:hover{background:rgba(74,144,196,0.07)}
+tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;letter-spacing:0.5px}
+.badge-pending{background:rgba(245,200,0,0.15);color:var(--ura-yellow)}
+.badge-done{background:rgba(34,197,94,0.15);color:var(--success)}
+.badge-ongoing{background:rgba(74,144,196,0.2);color:var(--ura-light-blue)}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:15px;margin-bottom:22px}
+.stat-card{background:var(--ura-card);border:1px solid var(--ura-border);border-radius:var(--radius);padding:20px;text-align:center}
+.stat-number{font-family:var(--font-head);font-size:2.4rem;font-weight:800;color:var(--ura-yellow);line-height:1}
+.stat-label{font-size:0.7rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--ura-muted);margin-top:4px}
+
+/* ── REPORT ── */
+.report-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:18px}
+.filter-group{display:flex;flex-direction:column;gap:5px;min-width:135px}
+
+/* ── UPLOAD ── */
+.upload-zone{border:2px dashed var(--ura-border);border-radius:var(--radius);padding:36px;text-align:center;cursor:pointer;transition:all 0.2s}
+.upload-zone:hover{border-color:var(--ura-light-blue);background:rgba(74,144,196,0.04)}
+.upload-zone.drag-over{border-color:var(--ura-yellow);background:rgba(245,200,0,0.05)}
+.upload-link{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:7px;font-family:var(--font-head);font-weight:700;font-size:0.88rem;letter-spacing:1px;text-transform:uppercase;text-decoration:none;border:1px solid var(--ura-border);color:var(--ura-text);transition:all 0.2s;margin:5px}
+.upload-link:hover{border-color:var(--ura-yellow);color:var(--ura-yellow)}
+.file-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ura-surface);border:1px solid var(--ura-border);border-radius:7px;margin-bottom:8px}
+.file-progress{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:6px;overflow:hidden;width:100%}
+.file-progress-bar{height:100%;background:var(--ura-yellow);border-radius:2px;transition:width 0.4s ease;width:0%}
+
+/* ── PAGE HEADER ── */
+.page-header{margin-bottom:26px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.page-header h2{font-family:var(--font-head);font-size:1.9rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:white;line-height:1}
+.page-header p{color:var(--ura-muted);margin-top:4px;font-size:0.88rem}
+.empty-state{text-align:center;padding:56px 20px;color:var(--ura-muted)}
+
+/* ── SYNC BADGE ── */
+.sync-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--success);background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);padding:4px 10px;border-radius:12px}
+.sync-dot{width:6px;height:6px;background:var(--success);border-radius:50%;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:28px;right:28px;z-index:999;background:var(--ura-card);border:1px solid var(--ura-border);border-radius:10px;padding:13px 20px;font-size:0.88rem;box-shadow:0 8px 30px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:340px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:var(--success)}
+#toast.error{border-color:var(--danger)}
+#toast.warning{border-color:var(--warning)}
+
+/* ── INFO BOX ── */
+.info-box{padding:14px 16px;background:var(--ura-surface);border:1px solid var(--ura-border);border-radius:var(--radius);font-size:0.83rem;color:var(--ura-muted);line-height:1.6}
+.info-box code{background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:var(--ura-light-blue)}
+
+@media(max-width:640px){
+  .header-top{padding:12px 14px;gap:12px}
+  .header-title h1{font-size:1.4rem}
+  .header-nav{padding:0 12px;overflow-x:auto}
+  .container{padding:18px 12px}
+  .auth-card{padding:26px 18px}
+  .header-badge{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ GLOBAL LOADER ══ -->
+<div id="globalLoader">
+  <div class="loader-logo">
+    <svg width="68" height="68" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="white"/>
+      <rect x="8" y="5" width="84" height="68" rx="3" fill="#F5C800"/>
+      <circle cx="50" cy="18" r="6" fill="#4A90C4"/>
+      <circle cx="50" cy="36" r="10" fill="#003087"/>
+      <circle cx="50" cy="58" r="14" fill="#003087"/>
+      <path d="M8 63 Q8 73 18 73 H82 Q92 73 92 63 L92 73 H8Z" fill="#003087"/>
+      <text x="50" y="88" text-anchor="middle" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="white">URA</text>
+    </svg>
+  </div>
+  <div class="loader-text">LAN Unit Register</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+</div>
+
+<!-- ══════════════ AUTH PAGE ══════════════ -->
+<div id="authPage" style="display:none">
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-inner">
+        <svg width="68" height="68" viewBox="0 0 100 100">
+          <rect width="100" height="100" fill="white"/>
+          <rect x="8" y="5" width="84" height="68" rx="3" fill="#F5C800"/>
+          <circle cx="50" cy="18" r="6" fill="#4A90C4"/>
+          <circle cx="50" cy="36" r="10" fill="#003087"/>
+          <circle cx="50" cy="58" r="14" fill="#003087"/>
+          <path d="M8 63 Q8 73 18 73 H82 Q92 73 92 63 L92 73 H8Z" fill="#003087"/>
+          <text x="50" y="88" text-anchor="middle" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="white">URA</text>
+        </svg>
+      </div>
+      <h2>LAN UNIT REGISTER</h2>
+      <p>ITID Dept · ITI Infrastructure Section</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <div id="authErr" class="auth-err"></div>
+
+    <!-- LOGIN -->
+    <div id="loginForm" class="auth-form">
+      <div class="form-group">
+        <label>Work Email</label>
+        <input type="email" id="loginEmail" placeholder="you@ura.go.ug" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') handleLogin()">
+      </div>
+      <button class="btn btn-primary" id="loginBtn" style="width:100%;justify-content:center" onclick="handleLogin()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign In
+      </button>
+      <div class="divider">or continue with</div>
+      <button class="btn-google" onclick="handleGoogleAuth()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Sign in with Google
+      </button>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signupForm" class="auth-form" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="signupName" placeholder="John Doe">
+      </div>
+      <div class="form-group">
+        <label>Work Email</label>
+        <input type="email" id="signupEmail" placeholder="you@ura.go.ug" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Staff / Employee ID</label>
+        <input type="text" id="signupStaff" placeholder="e.g. URA/ITID/001">
+      </div>
+      <div class="form-group">
+        <label>Department</label>
+        <select id="signupDept">
+          <option value="">— Select Department —</option>
+          <option>ITID / ITI Infrastructure</option>
+          <option>ITID / Networks</option>
+          <option>ITID / Systems</option>
+          <option>ITID / Security</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Password (min 6 chars)</label>
+        <input type="password" id="signupPassword" placeholder="Create a strong password" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary" id="signupBtn" style="width:100%;justify-content:center" onclick="handleSignup()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        Create Account
+      </button>
+      <div class="divider">or</div>
+      <button class="btn-google" onclick="handleGoogleAuth()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Sign up with Google
+      </button>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="mainApp" style="display:none">
+
+<header class="site-header">
+  <div class="header-top">
+    <div class="logo-wrap">
+      <svg width="74" height="74" viewBox="0 0 100 100">
+        <rect width="100" height="100" fill="white"/>
+        <rect x="8" y="5" width="84" height="68" rx="3" fill="#F5C800"/>
+        <circle cx="50" cy="18" r="6" fill="#4A90C4"/>
+        <circle cx="50" cy="36" r="10" fill="#003087"/>
+        <circle cx="50" cy="58" r="14" fill="#003087"/>
+        <path d="M8 63 Q8 73 18 73 H82 Q92 73 92 63 L92 73 H8Z" fill="#003087"/>
+        <text x="50" y="88" text-anchor="middle" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="white">URA</text>
+      </svg>
+    </div>
+    <div class="header-title">
+      <h1>LAN <span>Unit</span> Register</h1>
+      <p>ITID Department · ITI Infrastructure Section · Uganda Revenue Authority</p>
+    </div>
+    <div class="header-right">
+      <span class="sync-badge"><span class="sync-dot"></span>Firebase Live</span>
+      <span class="header-badge" id="headerYear">2026</span>
+      <div class="user-pill" onclick="handleLogout()">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <span class="user-name" id="userName">User</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4;flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <button class="nav-tab active" data-page="dashboard" onclick="showPage('dashboard',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:5px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+    </button>
+    <button class="nav-tab" data-page="register" onclick="showPage('register',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:5px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Activity
+    </button>
+    <button class="nav-tab" data-page="records" onclick="showPage('records',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:5px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>All Activities
+    </button>
+    <button class="nav-tab" data-page="reports" onclick="showPage('reports',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:5px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Reports & PDF
+    </button>
+    <button class="nav-tab" data-page="uploads" onclick="showPage('uploads',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Reports
+    </button>
+  </nav>
+</header>
+
+<div class="app-wrap">
+
+<!-- ───── DASHBOARD ───── -->
+<div id="page-dashboard" class="page active">
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h2>Overview</h2>
+      <p>Real-time LAN infrastructure activity tracker — synced to Firebase</p>
+    </div>
+    <div id="lastSyncBadge" style="font-size:0.75rem;color:var(--ura-muted)"></div>
+  </div>
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-number" id="statTotal">—</div><div class="stat-label">Total Activities</div></div>
+    <div class="stat-card"><div class="stat-number" id="statMonth">—</div><div class="stat-label">This Month</div></div>
+    <div class="stat-card"><div class="stat-number" id="statWeek">—</div><div class="stat-label">This Week</div></div>
+    <div class="stat-card"><div class="stat-number" id="statOngoing">—</div><div class="stat-label">Ongoing</div></div>
+    <div class="stat-card"><div class="stat-number" id="statDone">—</div><div class="stat-label">Completed</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Recent Activities
+    </div>
+    <div class="table-wrap" id="dashboardTable">
+      <div class="empty-state"><p>Loading from Firebase…</p></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ───── NEW ACTIVITY FORM ───── -->
+<div id="page-register" class="page">
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h2 id="formHeading">New Activity</h2>
+      <p id="formSubheading">Record a new LAN infrastructure activity — saved to Firebase Firestore</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Activity Details
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Serial Number (Auto-generated)</label>
+        <div class="sn-display" id="snDisplay">Generating…</div>
+      </div>
+      <div class="form-group">
+        <label>Brief of Activity *</label>
+        <input type="text" id="brief" placeholder="e.g. Switch replacement at reception">
+      </div>
+      <div class="form-group">
+        <label>URA Station *</label>
+        <select id="station">
+          <option value="">— Select Station —</option>
+          <optgroup label="Nakawa HQ">
+            <option value="URA Tower">URA Tower</option>
+            <option value="Sendawula">Sendawula</option>
+            <option value="Short Tower">Short Tower</option>
+            <option value="Long Room">Long Room</option>
+          </optgroup>
+          <optgroup label="Central Sites">
+            <option value="Akamwesi">Akamwesi</option><option value="Aponye">Aponye</option>
+            <option value="Boulevard">Boulevard</option><option value="Bus Terminal">Bus Terminal</option>
+            <option value="DFCU">DFCU</option><option value="DTB HAM">DTB HAM</option>
+            <option value="DTB Jinja Rd">DTB Jinja Rd</option><option value="Entebbe Arrivals">Entebbe Arrivals</option>
+            <option value="Entebbe Cargo">Entebbe Cargo</option><option value="Entebbe Courier">Entebbe Courier</option>
+            <option value="Entebbe DT">Entebbe DT</option><option value="Gayaza DT">Gayaza DT</option>
+            <option value="Kansanga DT">Kansanga DT</option><option value="Kikuubo">Kikuubo</option>
+            <option value="Kyaliwajala DT">Kyaliwajala DT</option><option value="Mukono DT">Mukono DT</option>
+            <option value="Nansana DT">Nansana DT</option><option value="Natete">Natete</option>
+            <option value="Old Kampala">Old Kampala</option><option value="Pearl Tower">Pearl Tower</option>
+            <option value="Port Bell">Port Bell</option><option value="Posta">Posta</option>
+            <option value="Wakiso">Wakiso</option>
+          </optgroup>
+          <optgroup label="Eastern Sites">
+            <option value="Amudat Customs">Amudat Customs</option><option value="Busia">Busia</option>
+            <option value="Busitema Customs">Busitema Customs</option><option value="Hama">Hama</option>
+            <option value="Iganga DT">Iganga DT</option><option value="Isimba Station">Isimba Station</option><option value="Jinja DT">Jinja DT</option>
+            <option value="Kamuli DT">Kamuli DT</option><option value="Kapchorwa">Kapchorwa</option>
+            <option value="Kayembe">Kayembe</option><option value="Kayunga">Kayunga</option>
+            <option value="Lwakhakha">Lwakhakha</option><option value="Malaba OSBP">Malaba OSBP</option>
+            <option value="Mbale CheckPoint">Mbale CheckPoint</option><option value="Mbale DT">Mbale DT</option>
+            <option value="Mbale ICD">Mbale ICD</option><option value="Namayingo">Namayingo</option>
+            <option value="Sigulu">Sigulu</option><option value="Soroti DT">Soroti DT</option>
+            <option value="Suam River">Suam River</option><option value="Tororo DT">Tororo DT</option>
+          </optgroup>
+          <optgroup label="Northern Sites">
+            <option value="Adjumani DT">Adjumani DT</option><option value="Afogi">Afogi</option>
+            <option value="Arua DT">Arua DT</option><option value="Aweno Olwi">Aweno Olwi</option>
+            <option value="Bweyale">Bweyale</option><option value="Elegu OSBP">Elegu OSBP</option>
+            <option value="Goli OSBP">Goli OSBP</option><option value="Gulu Customs">Gulu Customs</option>
+            <option value="Gulu DT">Gulu DT</option><option value="Kamdini Customs">Kamdini Customs</option>
+            <option value="Kapeeka">Kapeeka</option><option value="Karuma Customs">Karuma Customs</option>
+            <option value="Kitgum DT">Kitgum DT</option><option value="Koboko DT">Koboko DT</option>
+            <option value="Lia">Lia</option><option value="Lira DT">Lira DT</option>
+            <option value="Luweero">Luweero</option><option value="Madi-opei">Madi-opei</option>
+            <option value="Moroto DT">Moroto DT</option><option value="Nebbi DT">Nebbi DT</option>
+            <option value="Ngomoromo">Ngomoromo</option><option value="Oraba">Oraba</option>
+            <option value="Padea">Padea</option><option value="Pakwach">Pakwach</option>
+            <option value="Vura">Vura</option>
+          </optgroup>
+          <optgroup label="Western Sites">
+            <option value="Bugango">Bugango</option><option value="Bunagana Customs">Bunagana Customs</option>
+            <option value="Busanza">Busanza</option><option value="Bushenyi DT">Bushenyi DT</option>
+            <option value="Busunga">Busunga</option><option value="Butiaba">Butiaba</option>
+            <option value="Chanika Customs">Chanika Customs</option><option value="FortPortal DT">FortPortal DT</option>
+            <option value="Hoima DT">Hoima DT</option><option value="Ibanda">Ibanda</option>
+            <option value="Ishasha River">Ishasha River</option><option value="Kabale DT">Kabale DT</option>
+            <option value="Kagadi">Kagadi</option><option value="Kaiso">Kaiso</option>
+            <option value="Kamwezi">Kamwezi</option><option value="Kasensero">Kasensero</option>
+            <option value="Kasese">Kasese</option><option value="Katuna OSBP">Katuna OSBP</option>
+            <option value="Kikagati">Kikagati</option><option value="Kisoro DT">Kisoro DT</option>
+            <option value="Kizinga">Kizinga</option><option value="Kyeshero">Kyeshero</option>
+            <option value="Kyotera DT">Kyotera DT</option><option value="Masaka DT">Masaka DT</option>
+            <option value="Masindi DT">Masindi DT</option><option value="Mbarara DT">Mbarara DT</option>
+            <option value="Mirama Hills">Mirama Hills</option><option value="Mityana DT">Mityana DT</option>
+            <option value="Mpondwe OSBP">Mpondwe OSBP</option><option value="Mubende">Mubende</option>
+            <option value="Mutukula OSBP">Mutukula OSBP</option><option value="Ntoroko">Ntoroko</option>
+            <option value="Rukungiri DT">Rukungiri DT</option>
+          </optgroup>
+          <optgroup label="SCT (Transit Corridors)">
+            <option value="Dar-es-Salaam">Dar-es-Salaam</option><option value="Eldoret">Eldoret</option>
+            <option value="Kisumu">Kisumu</option><option value="Kisumu Port">Kisumu Port</option>
+            <option value="Mombasa">Mombasa</option><option value="Mombasa CheckPoint">Mombasa CheckPoint</option>
+            <option value="Nairobi">Nairobi</option><option value="Nairobi ICD">Nairobi ICD</option>
+            <option value="Naivasha">Naivasha</option><option value="Nakuru">Nakuru</option>
+          </optgroup>
+          <optgroup label="Other"><option value="Data Centre">Data Centre</option><option value="NIP">NIP</option></optgroup>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Specific Location / Floor</label>
+        <select id="location">
+          <option value="">— Select Location —</option>
+          <optgroup label="Floor / Level">
+            <option>Basement</option><option>LG</option><option>UG</option>
+            <option>Mezzanine</option>
+            <option>Ground Floor</option><option>1st Floor</option><option>2nd Floor</option>
+            <option>3rd Floor</option><option>4th Floor</option><option>5th Floor</option>
+            <option>6th Floor</option><option>7th Floor</option><option>8th Floor</option>
+            <option>9th Floor</option><option>10th Floor</option><option>11th Floor</option>
+            <option>12th Floor</option><option>13th Floor</option><option>14th Floor</option>
+            <option>15th Floor</option><option>16th Floor</option><option>17th Floor</option>
+            <option>18th Floor</option><option>19th Floor</option>
+          </optgroup>
+          <optgroup label="Room / Area">
+            <option>Server Room</option><option>Network Rack / MDF</option>
+            <option>IDF Room</option><option>Reception Area</option>
+            <option>Sendawula</option><option>Conference</option><option>NIP</option>
+            <option>Customs Hall</option><option>Scanner Room</option>
+            <option>Control Room</option><option>Boardroom</option><option>Open Office</option>
+            <option>Data Centre</option><option>Roof / ODF Room</option>
+            <option>External / Compound</option><option>Parking Level</option>
+          </optgroup>
+          <optgroup label="Region">
+            <option>Central</option>
+            <option>Eastern</option>
+            <option>Western</option>
+            <option>Northern</option>
+            <option>SCT</option>
+            <option>URA Tower</option>
+            <option>Nakawa HQ</option>
+            <option>NIP</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Nature of Activity *</label>
+        <textarea id="nature" placeholder="Describe the technical activity in detail — e.g. Replaced faulty 24-port Cisco Catalyst 2960 switch in server room, re-patched all 18 active ports, tested connectivity for all workstations. Root cause: power surge."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Start Date *</label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="form-group">
+        <label>Completion Date</label>
+        <input type="date" id="endDate">
+      </div>
+      <div class="form-group">
+        <label>Resource Person Assigned *</label>
+        <select id="resourceSelect" onchange="handleResourceChange()">
+          <option value="">— Select Resource Person —</option>
+          <option>Pius Angulo</option>
+          <option>Wilfred Matsande</option>
+          <option>Hassan Ashiraf</option>
+          <option>Paul Kakaire</option>
+          <option>Yahaya Said</option>
+          <option value="Other">Other (specify below)</option>
+        </select>
+        <input type="text" id="resource" placeholder="Type name of person" style="margin-top:7px;display:none">
+      </div>
+      <div class="form-group">
+        <label>Activity Status</label>
+        <select id="status">
+          <option value="Pending">Pending</option>
+          <option value="Ongoing">Ongoing</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Remarks / Notes (Optional)</label>
+        <input type="text" id="remarks" placeholder="Additional observations, follow-up required, ticket number, etc.">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveBtn" onclick="saveActivity()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save
+      </button>
+      <button class="btn btn-secondary" onclick="clearForm()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+        Clear Form
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ───── ALL ACTIVITIES ───── -->
+<div id="page-records" class="page">
+<div class="container">
+  <div class="page-header">
+    <div><h2>All Activities</h2><p>Complete activity register — live from Firestore</p></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <input type="text" id="searchBox" placeholder="Search…" style="min-width:190px" oninput="renderRecords()">
+      <select id="filterStatus" onchange="renderRecords()" style="min-width:125px">
+        <option value="">All Status</option>
+        <option>Pending</option><option>Ongoing</option><option>Completed</option>
+      </select>
+      <select id="filterStation" onchange="renderRecords()" style="min-width:155px">
+        <option value="">All Stations</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="table-wrap" id="recordsTable">
+      <div class="empty-state"><p>Loading activities…</p></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ───── REPORTS & PDF ───── -->
+<div id="page-reports" class="page">
+<div class="container">
+  <div class="page-header">
+    <div><h2>Reports & PDF Export</h2><p>Generate branded reports from your Firestore data</p></div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Report Configuration
+    </div>
+    <div class="report-controls">
+      <div class="filter-group">
+        <label>Report Period</label>
+        <select id="reportPeriod" onchange="updateReportFilters()">
+          <option value="week">This Week</option>
+          <option value="month" selected>This Month</option>
+          <option value="quarter">This Quarter</option>
+          <option value="year">This Year</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+      <div class="filter-group" id="customFrom" style="display:none">
+        <label>From Date</label><input type="date" id="reportFrom">
+      </div>
+      <div class="filter-group" id="customTo" style="display:none">
+        <label>To Date</label><input type="date" id="reportTo">
+      </div>
+      <div class="filter-group">
+        <label>Year</label>
+        <select id="reportYear"></select>
+      </div>
+      <div class="filter-group">
+        <label>Station Filter</label>
+        <select id="reportStation"><option value="">All Stations</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Status Filter</label>
+        <select id="reportStatus"><option value="">All Status</option><option>Pending</option><option>Ongoing</option><option>Completed</option></select>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <button class="btn btn-primary" onclick="generatePDF()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF
+        </button>
+        <button class="btn btn-secondary" onclick="previewReport()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+      </div>
+    </div>
+    <div id="reportPreview" style="display:none;margin-top:18px">
+      <div style="border:1px solid var(--ura-border);border-radius:var(--radius);overflow:hidden">
+        <div style="background:linear-gradient(135deg,var(--ura-blue),var(--ura-mid));padding:18px 22px">
+          <div style="display:flex;align-items:center;gap:13px">
+            <div style="background:white;border-radius:8px;padding:4px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="42" height="42" viewBox="0 0 100 100"><rect width="100" height="100" fill="white"/><rect x="8" y="5" width="84" height="68" rx="3" fill="#F5C800"/><circle cx="50" cy="18" r="6" fill="#4A90C4"/><circle cx="50" cy="36" r="10" fill="#003087"/><circle cx="50" cy="58" r="14" fill="#003087"/><path d="M8 63 Q8 73 18 73 H82 Q92 73 92 63 L92 73 H8Z" fill="#003087"/><text x="50" y="88" text-anchor="middle" font-family="Arial Black" font-size="20" font-weight="900" fill="white">URA</text></svg>
+            </div>
+            <div>
+              <div style="font-family:var(--font-head);font-weight:800;font-size:1.15rem;letter-spacing:2px;color:white">LAN UNIT REGISTER REPORT</div>
+              <div style="font-size:0.73rem;color:rgba(255,255,255,0.6);letter-spacing:1.5px;text-transform:uppercase">ITID Dept · ITI Infrastructure Section · Uganda Revenue Authority</div>
+            </div>
+          </div>
+          <div id="reportMeta" style="margin-top:10px;font-size:0.8rem;color:rgba(255,255,255,0.7)"></div>
+        </div>
+        <div class="table-wrap" id="reportTablePreview"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ── ALL ACTIVITIES DOWNLOAD ── -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Download All Activities
+    </div>
+    <p style="color:var(--ura-muted);margin-bottom:18px;font-size:0.88rem">
+      Export the <strong style="color:var(--ura-text)">complete register</strong> — every recorded activity regardless of period, station, or status filter. Use the buttons below to choose your format.
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <div class="filter-group" style="min-width:155px">
+        <label>Filter by Year (optional)</label>
+        <select id="allReportYear">
+          <option value="">All Years</option>
+        </select>
+      </div>
+      <div class="filter-group" style="min-width:155px">
+        <label>Filter by Status (optional)</label>
+        <select id="allReportStatus">
+          <option value="">All Status</option>
+          <option>Pending</option><option>Ongoing</option><option>Completed</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="downloadAllPDF()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6M9 15l3 3 3-3"/></svg>
+        Download All as PDF
+      </button>
+      <button class="btn btn-secondary" onclick="downloadAllCSV()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download All as CSV
+      </button>
+    </div>
+    <div id="allReportCount" style="margin-top:12px;font-size:0.82rem;color:var(--ura-muted)"></div>
+  </div>
+</div>
+</div>
+
+<!-- ───── UPLOAD REPORTS ───── -->
+<div id="page-uploads" class="page">
+<div class="container">
+  <div class="page-header">
+    <div><h2>Upload Activity Reports</h2><p>Upload completed reports to Firebase Storage or cloud drives</p></div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Firebase Storage Upload
+    </div>
+    <p style="color:var(--ura-muted);margin-bottom:20px;font-size:0.88rem">
+      Files are uploaded to your <strong style="color:var(--ura-light-blue)">lanregister.firebasestorage.app</strong> bucket under the <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-size:0.82rem">activity-reports/</code> folder.
+    </p>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+      <a href="https://drive.google.com" target="_blank" class="upload-link">
+        <svg width="17" height="17" viewBox="0 0 24 24"><path d="M7.71 3.5L1.15 15l3.43 6 6.56-11.5z" fill="#4285F4"/><path d="M22.85 15L16.29 3.5H9.14l6.56 11.5z" fill="#FBBC05"/><path d="M4.58 21h14.84l3.43-6H1.15z" fill="#34A853"/></svg>
+        Open Google Drive
+      </a>
+      <a href="https://onedrive.live.com" target="_blank" class="upload-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="#0078D4"><path d="M10.5 13.5l2.5-4.3c1.1-1.9 3-3.2 5-3.2 2.5 0 4.5 1.5 5.5 3.8A5.5 5.5 0 0 1 18.5 20H7a5 5 0 0 1-.5-10c.5-2.9 3-5 5.8-5a6 6 0 0 1 5 2.7"/></svg>
+        Open OneDrive
+      </a>
+      <a href="https://console.firebase.google.com/project/lanregister/storage" target="_blank" class="upload-link" style="border-color:rgba(245,200,0,0.35)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F5C800" stroke-width="2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
+        Firebase Console
+      </a>
+    </div>
+
+    <div class="upload-zone" id="dropZone"
+      onclick="document.getElementById('fileUploadInput').click()"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleDrop(event)">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.35;display:block;margin:0 auto"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <p style="margin-top:12px;color:var(--ura-muted)"><strong style="color:var(--ura-light-blue)">Click to select</strong> or drag & drop files here</p>
+      <p style="font-size:0.78rem;color:var(--ura-muted);margin-top:5px">PDF, DOCX, XLSX supported · Max 20MB per file</p>
+      <input type="file" id="fileUploadInput" multiple accept=".pdf,.docx,.xlsx,.doc,.xls" style="display:none" onchange="handleFileSelect(event)">
+    </div>
+
+    <div id="fileList" style="margin-top:16px"></div>
+
+    <div class="info-box" style="margin-top:20px">
+      <strong style="font-family:var(--font-head);letter-spacing:1px;color:var(--ura-text)">ℹ Firebase Storage</strong><br>
+      Files upload directly to <code>lanregister.firebasestorage.app/activity-reports/{year}/{filename}</code>.<br>
+      To share a Google Drive or OneDrive folder instead, paste your shared folder link in the buttons above.
+      You can also configure <code>Storage Rules</code> in your Firebase console to restrict uploads to authenticated URA staff only.
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /app-wrap -->
+</div><!-- /mainApp -->
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════
+     FIREBASE + APP LOGIC
+══════════════════════════════════ -->
+<script>
+// ─── FIREBASE INIT ───
+const firebaseConfig = {
+  apiKey: "AIzaSyC8SOS3pH_kEdajuOCBYvPxpEwNu_dnyXg",
+  authDomain: "lanregister.firebaseapp.com",
+  projectId: "lanregister",
+  storageBucket: "lanregister.firebasestorage.app",
+  messagingSenderId: "397795404184",
+  appId: "1:397795404184:web:ddcf45a0cec44e47a5e3ed"
+};
+firebase.initializeApp(firebaseConfig);
+
+const auth     = firebase.auth();
+const db       = firebase.firestore();
+const storage  = firebase.storage();
+
+// Firestore collection
+const COLL = 'lan_activities';
+
+// ─── STATE ───
+let activities = [];
+let editId     = null;
+let unsubscribe = null; // Firestore listener
+
+// ─── AUTH STATE OBSERVER ───
+auth.onAuthStateChanged(user => {
+  document.getElementById('globalLoader').style.display = 'none';
+  if (user) {
+    showMainApp(user);
+  } else {
+    document.getElementById('authPage').style.display = 'block';
+    document.getElementById('mainApp').style.display  = 'none';
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  }
+});
+
+function showMainApp(user) {
+  document.getElementById('authPage').style.display = 'none';
+  document.getElementById('mainApp').style.display  = 'block';
+
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('userName').textContent = name.split(' ')[0];
+  document.getElementById('headerYear').textContent = new Date().getFullYear();
+
+  const avatar = document.getElementById('userAvatar');
+  if (user.photoURL) {
+    avatar.innerHTML = `<img src="${user.photoURL}" alt="avatar">`;
+  } else {
+    avatar.textContent = name.charAt(0).toUpperCase();
+  }
+
+  initApp();
+}
+
+// ─── AUTH HANDLERS ───
+function switchAuthTab(tab) {
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+  document.getElementById('loginForm').style.display  = tab === 'login'  ? 'flex' : 'none';
+  document.getElementById('signupForm').style.display = tab === 'signup' ? 'flex' : 'none';
+  clearAuthErr();
+}
+
+function showAuthErr(msg) {
+  const el = document.getElementById('authErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function clearAuthErr() {
+  document.getElementById('authErr').style.display = 'none';
+}
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  if (!email || !pass) { showAuthErr('Please enter your email and password.'); return; }
+  setAuthBtnLoading('loginBtn', true);
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    showAuthErr(friendlyAuthError(e.code));
+    setAuthBtnLoading('loginBtn', false);
+  }
+}
+
+async function handleSignup() {
+  const name  = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const staff = document.getElementById('signupStaff').value.trim();
+  const dept  = document.getElementById('signupDept').value;
+  const pass  = document.getElementById('signupPassword').value;
+  if (!name || !email || !pass) { showAuthErr('Please fill in all required fields.'); return; }
+  if (pass.length < 6) { showAuthErr('Password must be at least 6 characters.'); return; }
+  setAuthBtnLoading('signupBtn', true);
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await cred.user.updateProfile({ displayName: name });
+    // Save extra profile info to Firestore
+    await db.collection('users').doc(cred.user.uid).set({ name, email, staff, dept, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  } catch(e) {
+    showAuthErr(friendlyAuthError(e.code));
+    setAuthBtnLoading('signupBtn', false);
+  }
+}
+
+async function handleGoogleAuth() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ hd: 'ura.go.ug' }); // hint to URA domain (not enforced)
+  try {
+    await auth.signInWithPopup(provider);
+  } catch(e) {
+    showAuthErr(friendlyAuthError(e.code));
+  }
+}
+
+async function handleLogout() {
+  if (!confirm('Sign out of LAN Unit Register?')) return;
+  await auth.signOut();
+}
+
+function setAuthBtnLoading(id, loading) {
+  const btn = document.getElementById(id);
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<div class="spinner"></div> Please wait…';
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = btn._orig;
+    btn.disabled = false;
+  }
+}
+
+function friendlyAuthError(code) {
+  const map = {
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password. Please try again.',
+    'auth/email-already-in-use': 'This email is already registered.',
+    'auth/invalid-email': 'Please enter a valid email address.',
+    'auth/weak-password': 'Password is too weak. Use at least 6 characters.',
+    'auth/network-request-failed': 'Network error. Check your connection.',
+    'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+    'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+    'auth/invalid-credential': 'Invalid email or password.',
+  };
+  return map[code] || 'Authentication error: ' + code;
+}
+
+// ─── APP INIT ───
+function initApp() {
+  setDefaultDates();
+  populateReportFilters();
+  startFirestoreListener();
+}
+
+function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('startDate').value = today;
+  document.getElementById('endDate').value   = today;
+}
+
+// ─── FIRESTORE REAL-TIME LISTENER ───
+function startFirestoreListener() {
+  if (unsubscribe) unsubscribe();
+
+  unsubscribe = db.collection(COLL)
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(snapshot => {
+      activities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderDashboard();
+      renderRecords();
+      updateSnDisplay();
+      updateStationFilters();
+      populateAllReportYear();
+      document.getElementById('lastSyncBadge').textContent =
+        'Last sync: ' + new Date().toLocaleTimeString('en-GB');
+    }, err => {
+      console.error('Firestore error:', err);
+      showToast('Firestore connection issue: ' + err.message, 'error');
+    });
+}
+
+// ─── SN GENERATION ───
+function updateSnDisplay() {
+  if (editId) return;
+  const year = new Date().getFullYear();
+  const num  = String(activities.length + 1).padStart(4, '0');
+  document.getElementById('snDisplay').textContent = `LAN/${year}/${num}`;
+}
+
+// ─── NAVIGATION ───
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'register' && !editId) {
+    document.getElementById('formHeading').textContent    = 'New Activity';
+    document.getElementById('formSubheading').textContent = 'Record a new LAN infrastructure activity — saved to Firebase Firestore';
+    updateSnDisplay();
+  }
+}
+
+// ─── SAVE ACTIVITY ───
+async function saveActivity() {
+  const brief    = document.getElementById('brief').value.trim();
+  const station  = document.getElementById('station').value;
+  const location = document.getElementById('location').value;
+  const nature   = document.getElementById('nature').value.trim();
+  const startDate= document.getElementById('startDate').value;
+  const endDate  = document.getElementById('endDate').value;
+  const resourceSel = document.getElementById('resourceSelect').value;
+  const resource = resourceSel === 'Other' || resourceSel === ''
+    ? document.getElementById('resource').value.trim()
+    : resourceSel;
+  const status   = document.getElementById('status').value;
+  const remarks  = document.getElementById('remarks').value.trim();
+
+  if (!brief || !station || !nature || !startDate || !resource) {
+    showToast('Please fill in all required (*) fields', 'error'); return;
+  }
+
+  const btn = document.getElementById('saveBtn');
+  btn.innerHTML = '<div class="spinner"></div> Saving…';
+  btn.disabled = true;
+
+  try {
+    const user = auth.currentUser;
+    const year = new Date().getFullYear();
+
+    if (editId) {
+      await db.collection(COLL).doc(editId).update({
+        brief, station, location, nature, startDate, endDate,
+        resource, status, remarks,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: user?.displayName || user?.email || 'Unknown'
+      });
+      showToast('Activity updated successfully!', 'success');
+      editId = null;
+    } else {
+      const num = String(activities.length + 1).padStart(4, '0');
+      const sn  = `LAN/${year}/${num}`;
+      await db.collection(COLL).add({
+        sn, brief, station, location, nature, startDate, endDate,
+        resource, status, remarks,
+        createdBy: user?.displayName || user?.email || 'Unknown',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('Activity saved to Firestore!', 'success');
+    }
+
+    clearForm();
+    // Switch back to dashboard
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-tab')[0].classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-dashboard').classList.add('active');
+
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+  } finally {
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save';
+    btn.disabled = false;
+  }
+}
+
+function clearForm() {
+  ['brief','nature','resource','remarks'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('station').value  = '';
+  document.getElementById('location').value = '';
+  document.getElementById('status').value   = 'Pending';
+  document.getElementById('resourceSelect').value = '';
+  document.getElementById('resource').style.display = 'none';
+  editId = null;
+  setDefaultDates();
+  updateSnDisplay();
+  document.getElementById('formHeading').textContent    = 'New Activity';
+  document.getElementById('formSubheading').textContent = 'Record a new LAN infrastructure activity — saved to Firebase Firestore';
+}
+
+function editActivity(id) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  const currentUser = auth.currentUser;
+  const currentName = currentUser ? (currentUser.displayName || currentUser.email) : '';
+  if (a.createdBy && a.createdBy !== currentName) {
+    showToast('You can only edit your own activities.', 'error'); return;
+  }
+  editId = id;
+  document.getElementById('brief').value    = a.brief    || '';
+  document.getElementById('station').value  = a.station  || '';
+  document.getElementById('location').value = a.location || '';
+  document.getElementById('nature').value   = a.nature   || '';
+  document.getElementById('startDate').value= a.startDate|| '';
+  document.getElementById('endDate').value  = a.endDate  || '';
+  document.getElementById('resource').value = a.resource || '';
+  // Set the resource dropdown
+  const knownResources = ['Pius Angulo','Wilfred Matsande','Hassan Ashiraf','Paul Kakaire','Yahaya Said'];
+  const resSel = document.getElementById('resourceSelect');
+  if (knownResources.includes(a.resource)) {
+    resSel.value = a.resource;
+    document.getElementById('resource').style.display = 'none';
+  } else {
+    resSel.value = 'Other';
+    document.getElementById('resource').style.display = 'block';
+    document.getElementById('resource').value = a.resource || '';
+  }
+  document.getElementById('status').value   = a.status   || 'Pending';
+  document.getElementById('remarks').value  = a.remarks  || '';
+  document.getElementById('snDisplay').textContent = a.sn || '—';
+  document.getElementById('formHeading').textContent    = 'Edit Activity: ' + a.sn;
+  document.getElementById('formSubheading').textContent = 'Updating existing record in Firestore';
+
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab')[1].classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-register').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('Editing: ' + a.sn, 'warning');
+}
+
+async function deleteActivity(id) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  const currentUser = auth.currentUser;
+  const currentName = currentUser ? (currentUser.displayName || currentUser.email) : '';
+  if (a.createdBy && a.createdBy !== currentName) {
+    showToast('You can only delete your own activities.', 'error'); return;
+  }
+  if (!confirm(`Delete activity ${a?.sn}? This cannot be undone.`)) return;
+  try {
+    await db.collection(COLL).doc(id).delete();
+    showToast('Activity deleted from Firestore', 'error');
+  } catch(e) {
+    showToast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+// ─── RENDER DASHBOARD ───
+function renderDashboard() {
+  const now       = new Date();
+  const weekAgo   = new Date(now - 7 * 86400000);
+  const monthStart= new Date(now.getFullYear(), now.getMonth(), 1);
+
+  document.getElementById('statTotal').textContent   = activities.length;
+  document.getElementById('statMonth').textContent   = activities.filter(a => new Date(a.startDate) >= monthStart).length;
+  document.getElementById('statWeek').textContent    = activities.filter(a => new Date(a.startDate) >= weekAgo).length;
+  document.getElementById('statOngoing').textContent = activities.filter(a => a.status === 'Ongoing').length;
+  document.getElementById('statDone').textContent    = activities.filter(a => a.status === 'Completed').length;
+
+  const recent = activities.slice(0, 8);
+  const container = document.getElementById('dashboardTable');
+  if (!recent.length) {
+    container.innerHTML = `<div class="empty-state"><p>No activities recorded yet.<br><strong style="color:var(--ura-yellow)">Click "New Activity" to get started.</strong></p></div>`;
+    return;
+  }
+  container.innerHTML = buildTable(recent, false);
+}
+
+// ─── RENDER RECORDS ───
+function renderRecords() {
+  const search   = (document.getElementById('searchBox')?.value || '').toLowerCase();
+  const fStatus  = document.getElementById('filterStatus')?.value || '';
+  const fStation = document.getElementById('filterStation')?.value || '';
+
+  const filtered = activities.filter(a => {
+    const matchSearch  = !search  || [a.sn,a.brief,a.station,a.resource,a.nature].some(v => v?.toLowerCase().includes(search));
+    const matchStatus  = !fStatus  || a.status  === fStatus;
+    const matchStation = !fStation || a.station === fStation;
+    return matchSearch && matchStatus && matchStation;
+  });
+
+  const container = document.getElementById('recordsTable');
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty-state"><p>No matching records found.</p></div>`;
+    return;
+  }
+  container.innerHTML = buildTable(filtered, true);
+}
+
+function updateStationFilters() {
+  const stations = [...new Set(activities.map(a => a.station).filter(Boolean))].sort();
+  ['filterStation','reportStation'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All Stations</option>';
+    stations.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      sel.appendChild(o);
+    });
+    sel.value = cur;
+  });
+}
+
+function handleResourceChange() {
+  const sel = document.getElementById('resourceSelect').value;
+  const textInput = document.getElementById('resource');
+  if (sel === 'Other') {
+    textInput.style.display = 'block';
+    textInput.focus();
+  } else {
+    textInput.style.display = 'none';
+    textInput.value = '';
+  }
+}
+
+
+function buildTable(rows, showActions) {
+  const currentUser = auth.currentUser;
+  const currentName = currentUser ? (currentUser.displayName || currentUser.email) : '';
+
+  // Column widths tuned to fill ~100% without overflow
+  const colWidths = showActions
+    ? ['6%','12%','12%','8%','19%','7%','7%','10%','6%','7%','6%']   // with actions
+    : ['6%','13%','13%','9%','22%','8%','8%','9%','7%','5%'];         // dashboard/report
+
+  const colDefs = showActions
+    ? ['SN','Brief of Activity','Station','Location','Nature of Activity','Start Date','End Date','Resource','Status','Added By','Actions']
+    : ['SN','Brief of Activity','Station','Location','Nature of Activity','Start Date','End Date','Resource','Status','Added By'];
+
+  let colgroup = `<colgroup>${colWidths.map(w=>`<col style="width:${w}">`).join('')}</colgroup>`;
+  let h = `<table><thead><tr>${colDefs.map(c=>`<th>${c}</th>`).join('')}</tr></thead>${colgroup}<tbody>`;
+
+  rows.forEach(a => {
+    const badge = {
+      'Pending':   '<span class="badge badge-pending">Pending</span>',
+      'Ongoing':   '<span class="badge badge-ongoing">Ongoing</span>',
+      'Completed': '<span class="badge badge-done">Completed</span>',
+    }[a.status] || `<span class="badge">${a.status||'—'}</span>`;
+
+    const esc = s => (s||'').replace(/"/g,'&quot;');
+    const short = (s, n) => s && s.length > n ? s.substring(0, n) + '…' : (s||'—');
+
+    // Determine ownership: match by displayName or email
+    const isOwner = currentName && a.createdBy && a.createdBy === currentName;
+    const addedByLabel = a.createdBy || '—';
+    const addedByStyle = isOwner ? 'color:var(--ura-yellow);font-weight:600' : 'color:var(--ura-muted)';
+
+    h += `<tr>
+      <td style="font-family:var(--font-head);font-weight:700;color:var(--ura-yellow)">${a.sn||'—'}</td>
+      <td title="${esc(a.brief)}">${short(a.brief, 26)}</td>
+      <td style="font-size:0.79rem" title="${esc(a.station)}">${short(a.station, 28)}</td>
+      <td style="font-size:0.79rem" title="${esc(a.location)}">${short(a.location, 16)}</td>
+      <td style="font-size:0.79rem" title="${esc(a.nature)}">${short(a.nature, 50)}</td>
+      <td>${fmtDate(a.startDate)}</td>
+      <td>${fmtDate(a.endDate)}</td>
+      <td title="${esc(a.resource)}">${short(a.resource, 18)}</td>
+      <td>${badge}</td>
+      <td style="font-size:0.77rem;${addedByStyle}" title="${esc(a.createdBy)}">${short(addedByLabel, 16)}</td>
+      ${showActions ? `<td><div style="display:flex;gap:4px">
+        ${isOwner
+          ? `<button class="btn btn-secondary btn-sm" onclick="editActivity('${a.id}')" title="Edit your activity">Edit</button>
+             <button class="btn btn-danger btn-sm" onclick="deleteActivity('${a.id}')" title="Delete your activity">Del</button>`
+          : `<span style="font-size:0.72rem;color:var(--ura-muted);font-style:italic">View only</span>`
+        }
+      </div></td>` : ''}
+    </tr>`;
+  });
+  h += '</tbody></table>';
+  return h;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+// ─── REPORT FILTERS ───
+function populateReportFilters() {
+  const yearSel = document.getElementById('reportYear');
+  const cy = new Date().getFullYear();
+  yearSel.innerHTML = '';
+  for (let y = cy; y >= cy - 5; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y; if (y === cy) o.selected = true;
+    yearSel.appendChild(o);
+  }
+}
+
+function updateReportFilters() {
+  const show = document.getElementById('reportPeriod').value === 'custom';
+  document.getElementById('customFrom').style.display = show ? 'flex' : 'none';
+  document.getElementById('customTo').style.display   = show ? 'flex' : 'none';
+}
+
+function getReportRange() {
+  const period = document.getElementById('reportPeriod').value;
+  const year   = parseInt(document.getElementById('reportYear').value) || new Date().getFullYear();
+  const now    = new Date();
+  let from, to;
+  if (period === 'week') {
+    from = new Date(now); from.setDate(now.getDate() - now.getDay());
+    to   = new Date(from); to.setDate(from.getDate() + 6);
+  } else if (period === 'month') {
+    from = new Date(year, now.getMonth(), 1);
+    to   = new Date(year, now.getMonth() + 1, 0);
+  } else if (period === 'quarter') {
+    const q = Math.floor(now.getMonth() / 3);
+    from = new Date(year, q * 3, 1);
+    to   = new Date(year, q * 3 + 3, 0);
+  } else if (period === 'year') {
+    from = new Date(year, 0, 1);
+    to   = new Date(year, 11, 31);
+  } else {
+    from = new Date(document.getElementById('reportFrom').value || now);
+    to   = new Date(document.getElementById('reportTo').value   || now);
+  }
+  return { from, to };
+}
+
+function getReportLabel() {
+  const period = document.getElementById('reportPeriod').value;
+  const year   = document.getElementById('reportYear').value;
+  const now    = new Date();
+  if (period === 'week')    return `Week of ${fmtDate(new Date(now - now.getDay() * 86400000).toISOString().split('T')[0])}`;
+  if (period === 'month')   return `${now.toLocaleString('en-GB',{month:'long'})} ${year}`;
+  if (period === 'quarter') return `Q${Math.floor(now.getMonth()/3)+1} ${year}`;
+  if (period === 'year')    return `Full Year ${year}`;
+  return `${document.getElementById('reportFrom').value} to ${document.getElementById('reportTo').value}`;
+}
+
+function getFilteredForReport() {
+  const { from, to } = getReportRange();
+  const stFilter = document.getElementById('reportStation').value;
+  const statusF  = document.getElementById('reportStatus').value;
+  return activities.filter(a => {
+    const d        = new Date(a.startDate + 'T00:00:00');
+    const inRange  = d >= from && d <= to;
+    const inSt     = !stFilter || a.station === stFilter;
+    const inStatus = !statusF  || a.status  === statusF;
+    return inRange && inSt && inStatus;
+  }).sort((a,b) => new Date(a.startDate) - new Date(b.startDate));
+}
+
+function previewReport() {
+  const filtered = getFilteredForReport();
+  const label    = getReportLabel();
+  document.getElementById('reportPreview').style.display = 'block';
+  document.getElementById('reportMeta').innerHTML =
+    `Period: <strong style="color:white">${label}</strong> &nbsp;|&nbsp; Records: <strong style="color:white">${filtered.length}</strong> &nbsp;|&nbsp; Generated: <strong style="color:white">${new Date().toLocaleDateString('en-GB')}</strong>`;
+  document.getElementById('reportTablePreview').innerHTML =
+    filtered.length ? buildTable(filtered, false) : `<div class="empty-state"><p>No records in this period.</p></div>`;
+  document.getElementById('reportPreview').scrollIntoView({ behavior:'smooth' });
+}
+
+function generatePDF() {
+  const filtered = getFilteredForReport();
+  const label    = getReportLabel();
+  if (!filtered.length) { showToast('No records found for the selected period.', 'error'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  // Header background
+  doc.setFillColor(0, 48, 135);
+  doc.rect(0, 0, 297, 38, 'F');
+  doc.setFillColor(245, 200, 0);
+  doc.rect(0, 35, 297, 3, 'F');
+
+  // Logo - URA shield design
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(8, 4, 28, 28, 2, 2, 'F');
+  doc.setFillColor(245, 200, 0);
+  doc.roundedRect(10, 6, 24, 20, 1, 1, 'F');
+  doc.setFillColor(0, 48, 135);
+  doc.circle(22, 11, 2, 'F');
+  doc.circle(22, 16.5, 3.2, 'F');
+  doc.circle(22, 23, 4.5, 'F');
+  doc.setFillColor(0, 48, 135);
+  doc.rect(10, 22.5, 24, 3.5, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('URA', 22, 29.5, { align:'center' });
+
+  // Title
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(17); doc.setFont('helvetica','bold');
+  doc.text('LAN UNIT ACTIVITY REGISTER', 155, 14, { align:'center' });
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('ITID Department  ·  ITI Infrastructure Section  ·  Uganda Revenue Authority', 155, 21, { align:'center' });
+  doc.setFontSize(8.5);
+  doc.text(`Period: ${label}`, 48, 29);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}`, 155, 29, {align:'center'});
+  doc.text(`Records: ${filtered.length}`, 280, 29, {align:'right'});
+
+  // Summary bar
+  const completed = filtered.filter(a=>a.status==='Completed').length;
+  const ongoing   = filtered.filter(a=>a.status==='Ongoing').length;
+  const pending   = filtered.filter(a=>a.status==='Pending').length;
+  doc.setFillColor(236, 242, 255);
+  doc.rect(0, 41, 297, 11, 'F');
+  doc.setTextColor(40,60,100); doc.setFontSize(8.5); doc.setFont('helvetica','bold');
+  doc.text(`Completed: ${completed}   |   Ongoing: ${ongoing}   |   Pending: ${pending}`, 155, 48.5, {align:'center'});
+
+  // Table
+  doc.autoTable({
+    startY: 55,
+    head: [['SN','Brief of Activity','Station','Location','Nature of Activity','Start Date','End Date','Resource Person','Status','Added By']],
+    body: filtered.map(a => [
+      a.sn||'—', a.brief||'—', a.station||'—', a.location||'—',
+      (a.nature||'—'),
+      fmtDate(a.startDate), fmtDate(a.endDate), a.resource||'—', a.status||'—', a.createdBy||'—'
+    ]),
+    styles: { fontSize: 7, cellPadding: 2.5, lineColor: [200,214,230], lineWidth: 0.25 },
+    headStyles: { fillColor: [0,48,135], textColor: [245,200,0], fontStyle:'bold', fontSize:7.5 },
+    alternateRowStyles: { fillColor: [246,249,255] },
+    columnStyles: {
+      0: { cellWidth: 26, fontStyle:'bold', textColor:[10,80,200] },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 48 },
+      5: { cellWidth: 20 },
+      6: { cellWidth: 20 },
+      7: { cellWidth: 26 },
+      8: { cellWidth: 20 },
+      9: { cellWidth: 24 }
+    },
+    didParseCell(data) {
+      if (data.section === 'body' && data.column.index === 8) {
+        const v = data.cell.raw;
+        const colors = { 'Completed':[22,163,74], 'Ongoing':[37,99,235], 'Pending':[180,110,0] };
+        if (colors[v]) {
+          data.cell.styles.textColor = colors[v];
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.halign = 'center';
+        }
+      }
+    }
+  });
+
+  // Footer
+  const ph = doc.internal.pageSize.height;
+  doc.setFillColor(0,48,135);
+  doc.rect(0, ph-11, 297, 11, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text(`UGANDA REVENUE AUTHORITY  ·  LAN Unit Register  ·  ITID Department  ·  Generated by ${auth.currentUser?.displayName||auth.currentUser?.email||'Staff'}`, 155, ph-4, {align:'center'});
+
+  const period = document.getElementById('reportPeriod').value;
+  doc.save(`URA_LAN_Register_${period}_${new Date().toISOString().split('T')[0]}.pdf`);
+  showToast('PDF downloaded successfully!', 'success');
+}
+
+// ─── DOWNLOAD ALL ACTIVITIES ───
+function getFilteredAll() {
+  const yearF   = document.getElementById('allReportYear')?.value || '';
+  const statusF = document.getElementById('allReportStatus')?.value || '';
+  return activities.filter(a => {
+    const yr = a.startDate ? a.startDate.substring(0, 4) : '';
+    return (!yearF || yr === yearF) && (!statusF || a.status === statusF);
+  }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+}
+
+function updateAllReportCount() {
+  const el = document.getElementById('allReportCount');
+  if (!el) return;
+  const n = getFilteredAll().length;
+  el.textContent = `${n} activit${n === 1 ? 'y' : 'ies'} will be included in the export.`;
+}
+
+function populateAllReportYear() {
+  const sel = document.getElementById('allReportYear');
+  if (!sel) return;
+  const years = [...new Set(activities.map(a => a.startDate?.substring(0,4)).filter(Boolean))].sort((a,b) => b-a);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Years</option>';
+  years.forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    sel.appendChild(o);
+  });
+  sel.value = cur;
+  sel.onchange = updateAllReportCount;
+  document.getElementById('allReportStatus').onchange = updateAllReportCount;
+  updateAllReportCount();
+}
+
+function downloadAllPDF() {
+  populateAllReportYear();
+  const filtered = getFilteredAll();
+  if (!filtered.length) { showToast('No activities to export.', 'error'); return; }
+
+  const yearF   = document.getElementById('allReportYear')?.value || '';
+  const statusF = document.getElementById('allReportStatus')?.value || '';
+  const label   = [yearF || 'All Years', statusF || 'All Status'].join(' · ');
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  // Header
+  doc.setFillColor(0, 48, 135);
+  doc.rect(0, 0, 297, 38, 'F');
+  doc.setFillColor(245, 200, 0);
+  doc.rect(0, 35, 297, 3, 'F');
+
+  // Logo
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(8, 4, 28, 28, 2, 2, 'F');
+  doc.setFillColor(245, 200, 0);
+  doc.roundedRect(10, 6, 24, 20, 1, 1, 'F');
+  doc.setFillColor(0, 48, 135);
+  doc.circle(22, 11, 2, 'F');
+  doc.circle(22, 16.5, 3.2, 'F');
+  doc.circle(22, 23, 4.5, 'F');
+  doc.rect(10, 22.5, 24, 3.5, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('URA', 22, 29.5, { align:'center' });
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(17); doc.setFont('helvetica','bold');
+  doc.text('LAN UNIT ACTIVITY REGISTER — FULL EXPORT', 155, 14, { align:'center' });
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('ITID Department  ·  ITI Infrastructure Section  ·  Uganda Revenue Authority', 155, 21, { align:'center' });
+  doc.setFontSize(8.5);
+  doc.text(`Filter: ${label}`, 48, 29);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}`, 155, 29, {align:'center'});
+  doc.text(`Total Records: ${filtered.length}`, 280, 29, {align:'right'});
+
+  // Summary bar
+  const completed = filtered.filter(a=>a.status==='Completed').length;
+  const ongoing   = filtered.filter(a=>a.status==='Ongoing').length;
+  const pending   = filtered.filter(a=>a.status==='Pending').length;
+  doc.setFillColor(236, 242, 255);
+  doc.rect(0, 41, 297, 11, 'F');
+  doc.setTextColor(40, 60, 100); doc.setFontSize(8.5); doc.setFont('helvetica','bold');
+  doc.text(`Completed: ${completed}   |   Ongoing: ${ongoing}   |   Pending: ${pending}`, 155, 48.5, {align:'center'});
+
+  doc.autoTable({
+    startY: 55,
+    head: [['SN','Brief of Activity','Station','Location','Nature of Activity','Start Date','End Date','Resource Person','Status','Added By']],
+    body: filtered.map(a => [
+      a.sn||'—', a.brief||'—', a.station||'—', a.location||'—',
+      (a.nature||'—'),
+      fmtDate(a.startDate), fmtDate(a.endDate), a.resource||'—', a.status||'—', a.createdBy||'—'
+    ]),
+    styles: { fontSize: 7, cellPadding: 2.5, lineColor: [200,214,230], lineWidth: 0.25 },
+    headStyles: { fillColor: [0,48,135], textColor: [245,200,0], fontStyle:'bold', fontSize:7.5 },
+    alternateRowStyles: { fillColor: [246,249,255] },
+    columnStyles: {
+      0: { cellWidth: 26, fontStyle:'bold', textColor:[10,80,200] },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 48 },
+      5: { cellWidth: 20 },
+      6: { cellWidth: 20 },
+      7: { cellWidth: 26 },
+      8: { cellWidth: 20 },
+      9: { cellWidth: 24 }
+    },
+    didParseCell(data) {
+      if (data.section === 'body' && data.column.index === 8) {
+        const v = data.cell.raw;
+        const colors = { 'Completed':[22,163,74], 'Ongoing':[37,99,235], 'Pending':[180,110,0] };
+        if (colors[v]) {
+          data.cell.styles.textColor = colors[v];
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.halign = 'center';
+        }
+      }
+    }
+  });
+
+  const ph = doc.internal.pageSize.height;
+  doc.setFillColor(0,48,135);
+  doc.rect(0, ph-11, 297, 11, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text(`UGANDA REVENUE AUTHORITY  ·  LAN Unit Register  ·  ITID Department  ·  Generated by ${auth.currentUser?.displayName||auth.currentUser?.email||'Staff'}`, 155, ph-4, {align:'center'});
+
+  const suffix = [yearF, statusF].filter(Boolean).join('_') || 'All';
+  doc.save(`URA_LAN_Register_FULL_${suffix}_${new Date().toISOString().split('T')[0]}.pdf`);
+  showToast(`PDF with ${filtered.length} activities downloaded!`, 'success');
+}
+
+function downloadAllCSV() {
+  const filtered = getFilteredAll();
+  if (!filtered.length) { showToast('No activities to export.', 'error'); return; }
+
+  const headers = ['SN','Brief of Activity','Station','Location','Nature of Activity','Start Date','End Date','Resource Person','Status','Remarks','Created By'];
+  const esc = v => `"${(v||'').replace(/"/g,'""')}"`;
+  const rows = filtered.map(a => [
+    esc(a.sn), esc(a.brief), esc(a.station), esc(a.location), esc(a.nature),
+    esc(a.startDate), esc(a.endDate), esc(a.resource), esc(a.status), esc(a.remarks), esc(a.createdBy)
+  ].join(','));
+
+  const csv = [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const yearF   = document.getElementById('allReportYear')?.value || '';
+  const statusF = document.getElementById('allReportStatus')?.value || '';
+  const suffix  = [yearF, statusF].filter(Boolean).join('_') || 'All';
+  link.href = url;
+  link.download = `URA_LAN_Register_FULL_${suffix}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast(`CSV with ${filtered.length} activities downloaded!`, 'success');
+}
+
+// ─── FILE UPLOAD (Firebase Storage) ───
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files);
+  processFiles(files);
+}
+
+function handleFileSelect(e) {
+  processFiles(Array.from(e.target.files));
+}
+
+function processFiles(files) {
+  if (!files.length) return;
+  const list = document.getElementById('fileList');
+  files.forEach(file => {
+    if (file.size > 20 * 1024 * 1024) {
+      showToast(`${file.name} exceeds 20MB limit`, 'error'); return;
+    }
+    const itemId = 'file_' + Date.now() + Math.random().toString(36).slice(2);
+    list.insertAdjacentHTML('beforeend', `
+      <div id="${itemId}" class="file-item" style="flex-wrap:wrap">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ura-light-blue)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span style="flex:1;font-size:0.87rem">${file.name}</span>
+        <span style="font-size:0.77rem;color:var(--ura-muted)">${(file.size/1024/1024).toFixed(2)} MB</span>
+        <span id="${itemId}_status" style="font-size:0.75rem;background:rgba(245,200,0,0.12);color:var(--ura-yellow);padding:3px 9px;border-radius:10px">Uploading…</span>
+        <div class="file-progress" style="width:100%"><div id="${itemId}_bar" class="file-progress-bar"></div></div>
+      </div>
+    `);
+    uploadToFirebase(file, itemId);
+  });
+}
+
+function uploadToFirebase(file, itemId) {
+  const year = new Date().getFullYear();
+  const path = `activity-reports/${year}/${Date.now()}_${file.name}`;
+  const ref  = storage.ref(path);
+  const task = ref.put(file);
+
+  task.on('state_changed',
+    snap => {
+      const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+      document.getElementById(itemId + '_bar').style.width = pct + '%';
+    },
+    err => {
+      document.getElementById(itemId + '_status').textContent = 'Failed';
+      document.getElementById(itemId + '_status').style.background = 'rgba(239,68,68,0.12)';
+      document.getElementById(itemId + '_status').style.color = 'var(--danger)';
+      showToast('Upload failed: ' + err.message, 'error');
+    },
+    async () => {
+      const url = await task.snapshot.ref.getDownloadURL();
+      document.getElementById(itemId + '_bar').style.width = '100%';
+      document.getElementById(itemId + '_bar').style.background = 'var(--success)';
+      document.getElementById(itemId + '_status').textContent = 'Uploaded ✓';
+      document.getElementById(itemId + '_status').style.background = 'rgba(34,197,94,0.12)';
+      document.getElementById(itemId + '_status').style.color = 'var(--success)';
+      // Save file reference to Firestore
+      await db.collection('uploaded_reports').add({
+        name: file.name, url, path,
+        uploadedBy: auth.currentUser?.displayName || auth.currentUser?.email,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast(`${file.name} uploaded to Firebase Storage!`, 'success');
+    }
+  );
+}
+
+// ─── TOAST ───
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  const icons = {
+    success: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,
+    error:   `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    warning: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+  };
+  t.innerHTML = (icons[type]||'') + msg;
+  t.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 3500);
+}
+</script>
+</body>
+</html>
