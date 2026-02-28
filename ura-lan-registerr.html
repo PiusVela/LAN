@@ -179,13 +179,158 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
 .info-box{padding:14px 16px;background:var(--ura-surface);border:1px solid var(--ura-border);border-radius:var(--radius);font-size:0.83rem;color:var(--ura-muted);line-height:1.6}
 .info-box code{background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:var(--ura-light-blue)}
 
-@media(max-width:640px){
-  .header-top{padding:12px 14px;gap:12px}
-  .header-title h1{font-size:1.4rem}
-  .header-nav{padding:0 12px;overflow-x:auto}
-  .container{padding:18px 12px}
-  .auth-card{padding:26px 18px}
+/* ═══════════════════════════════════════════
+   MOBILE BOTTOM NAV  (hidden on desktop)
+═══════════════════════════════════════════ */
+.mob-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:var(--ura-mid);
+  border-top:2px solid var(--ura-yellow);
+  box-shadow:0 -6px 30px rgba(0,0,0,0.6);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.mob-nav-inner{display:flex}
+.mob-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;padding:9px 2px 8px;
+  font-family:var(--font-head);font-size:0.58rem;font-weight:700;
+  letter-spacing:0.8px;text-transform:uppercase;color:var(--ura-muted);
+  background:none;border:none;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:color 0.15s;
+}
+.mob-btn svg{flex-shrink:0;transition:transform 0.15s}
+.mob-btn.active{color:var(--ura-yellow)}
+.mob-btn.active svg{transform:scale(1.1)}
+/* FAB-style center "New" button */
+.mob-btn.mob-fab{
+  position:relative;
+}
+.mob-btn.mob-fab .mob-fab-icon{
+  width:44px;height:44px;background:var(--ura-yellow);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(245,200,0,0.45);
+  margin-top:-18px;margin-bottom:2px;
+  transition:transform 0.15s,box-shadow 0.15s;
+}
+.mob-btn.mob-fab.active .mob-fab-icon,
+.mob-btn.mob-fab:active .mob-fab-icon{
+  transform:scale(0.93);
+  box-shadow:0 2px 8px rgba(245,200,0,0.3);
+}
+
+/* ═══════════════════════════════════════════
+   ACTIVITY CARD  (mobile list replacement for table)
+═══════════════════════════════════════════ */
+.mob-cards{display:none}
+.act-card{
+  background:var(--ura-card);border:1px solid var(--ura-border);
+  border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;
+  border-left:3px solid var(--ura-border);
+  transition:border-color 0.2s;
+}
+.act-card.status-completed{border-left-color:var(--success)}
+.act-card.status-ongoing{border-left-color:var(--ura-light-blue)}
+.act-card.status-pending{border-left-color:var(--ura-yellow)}
+.act-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:7px}
+.act-card-sn{font-family:var(--font-head);font-weight:700;font-size:0.82rem;color:var(--ura-yellow);letter-spacing:1px}
+.act-card-brief{font-weight:600;font-size:0.93rem;color:white;margin-bottom:6px;line-height:1.35}
+.act-card-meta{display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:10px;font-size:0.77rem;color:var(--ura-muted)}
+.act-card-meta span{display:inline-flex;align-items:center;gap:4px}
+.act-card-nature{font-size:0.8rem;color:var(--ura-muted);line-height:1.4;margin-bottom:10px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.act-card-footer{display:flex;gap:8px;align-items:center}
+.act-card-footer .badge{font-size:0.7rem}
+.act-card-actions{margin-left:auto;display:flex;gap:6px}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE OVERRIDES  ≤ 768px
+═══════════════════════════════════════════ */
+@media(max-width:768px){
+
+  /* ── Bottom nav visible ── */
+  .mob-nav{display:block}
+
+  /* ── Header collapses ── */
+  .header-top{padding:10px 12px;gap:10px}
+  .logo-wrap{width:48px;height:48px;border-radius:8px;padding:3px;flex-shrink:0}
+  .logo-wrap svg{width:42px;height:42px}
+  .header-title h1{font-size:1.15rem;letter-spacing:1px}
+  .header-title p{display:none}
   .header-badge{display:none}
+  .sync-badge{display:none}
+  .header-right{gap:8px}
+  .user-name{display:none}
+  .user-pill{padding:4px;border-radius:50%;border-radius:50%}
+  .user-pill > svg:last-child{display:none}
+
+  /* ── Desktop nav hidden; bottom nav handles navigation ── */
+  .header-nav{display:none}
+
+  /* ── Extra bottom padding so content clears the nav bar ── */
+  .app-wrap{padding-bottom:72px}
+
+  /* ── Container tighter ── */
+  .container{padding:14px 12px}
+
+  /* ── Page headers stack ── */
+  .page-header{flex-direction:column;align-items:stretch;margin-bottom:16px;gap:10px}
+  .page-header h2{font-size:1.5rem}
+  .page-header > div:last-child{display:flex;flex-direction:column;gap:8px}
+  .page-header input,.page-header select{min-width:0!important;width:100%}
+
+  /* ── Stats grid: 3-up on mobile ── */
+  .stats-row{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat-card{padding:14px 8px}
+  .stat-number{font-size:1.8rem}
+  .stat-label{font-size:0.6rem;letter-spacing:1px}
+
+  /* ── Cards ── */
+  .card{padding:14px;margin-bottom:12px}
+  .card-title{font-size:0.9rem;margin-bottom:12px;padding-bottom:10px}
+
+  /* ── Form single-column ── */
+  .form-grid{grid-template-columns:1fr}
+  .form-group.full{grid-column:1}
+  /* Prevent iOS font zoom on focus */
+  input,select,textarea{font-size:16px!important}
+  .sn-display{font-size:0.95rem}
+  .form-actions{gap:8px}
+  .form-actions .btn{flex:1;justify-content:center;min-width:0}
+
+  /* ── Table hidden on mobile; cards shown instead ── */
+  .table-wrap table{display:none}
+  .mob-cards{display:block}
+
+  /* ── Report controls stack ── */
+  .report-controls{flex-direction:column;gap:10px}
+  .filter-group{min-width:0!important;width:100%}
+  .report-controls > div:last-child{display:flex;flex-direction:column;gap:8px;width:100%}
+  .report-controls > div:last-child .btn{width:100%;justify-content:center}
+
+  /* ── Buttons ── */
+  .btn{padding:12px 16px;font-size:0.86rem}
+  .btn-sm{padding:8px 11px;font-size:0.76rem}
+
+  /* ── Upload links stack ── */
+  .upload-link{display:flex;width:100%;margin:4px 0;justify-content:center}
+
+  /* ── Auth page ── */
+  .auth-wrap{padding:14px;align-items:flex-start;padding-top:40px}
+  .auth-card{padding:24px 16px}
+  .auth-logo-inner{width:64px;height:64px}
+  .auth-logo h2{font-size:1.1rem}
+
+  /* ── Toast sits above bottom nav ── */
+  #toast{bottom:80px;right:12px;left:12px;max-width:none;font-size:0.84rem;padding:12px 14px}
+
+  /* ── Info box ── */
+  .info-box{font-size:0.8rem}
+
+  /* ── Download All buttons stack ── */
+  .dl-btns{flex-direction:column}
+  .dl-btns .btn{width:100%;justify-content:center}
 }
 </style>
 </head>
@@ -350,6 +495,34 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
   </nav>
 </header>
 
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<nav class="mob-nav" id="mobNav">
+  <div class="mob-nav-inner">
+    <button class="mob-btn active" id="mobt-dashboard" onclick="mobNav('dashboard',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Home
+    </button>
+    <button class="mob-btn" id="mobt-records" onclick="mobNav('records',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Records
+    </button>
+    <button class="mob-btn mob-fab" id="mobt-register" onclick="mobNav('register',this)">
+      <div class="mob-fab-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A1628" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      New
+    </button>
+    <button class="mob-btn" id="mobt-reports" onclick="mobNav('reports',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Reports
+    </button>
+    <button class="mob-btn" id="mobt-uploads" onclick="mobNav('uploads',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload
+    </button>
+  </div>
+</nav>
+
 <div class="app-wrap">
 
 <!-- ───── DASHBOARD ───── -->
@@ -377,6 +550,7 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
     <div class="table-wrap" id="dashboardTable">
       <div class="empty-state"><p>Loading from Firebase…</p></div>
     </div>
+    <div class="mob-cards" id="dashboardCards"></div>
   </div>
 </div>
 </div>
@@ -592,6 +766,7 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
     <div class="table-wrap" id="recordsTable">
       <div class="empty-state"><p>Loading activities…</p></div>
     </div>
+    <div class="mob-cards" id="recordsCards"></div>
   </div>
 </div>
 </div>
@@ -691,7 +866,7 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
         </select>
       </div>
     </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;gap:12px;flex-wrap:wrap" class="dl-btns">
       <button class="btn btn-primary" onclick="downloadAllPDF()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6M9 15l3 3 3-3"/></svg>
         Download All as PDF
@@ -1023,6 +1198,10 @@ async function saveActivity() {
     document.querySelectorAll('.nav-tab')[0].classList.add('active');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-dashboard').classList.add('active');
+    // Sync mobile nav
+    document.querySelectorAll('.mob-btn').forEach(b => b.classList.remove('active'));
+    const mobDash = document.getElementById('mobt-dashboard');
+    if (mobDash) mobDash.classList.add('active');
 
   } catch(e) {
     showToast('Save failed: ' + e.message, 'error');
@@ -1083,6 +1262,10 @@ function editActivity(id) {
   document.querySelectorAll('.nav-tab')[1].classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-register').classList.add('active');
+  // Sync mobile nav
+  document.querySelectorAll('.mob-btn').forEach(b => b.classList.remove('active'));
+  const mobReg = document.getElementById('mobt-register');
+  if (mobReg) mobReg.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   showToast('Editing: ' + a.sn, 'warning');
 }
@@ -1123,6 +1306,7 @@ function renderDashboard() {
     return;
   }
   container.innerHTML = buildTable(recent, false);
+  buildMobCards(recent, false, 'dashboardCards');
 }
 
 // ─── RENDER RECORDS ───
@@ -1144,6 +1328,7 @@ function renderRecords() {
     return;
   }
   container.innerHTML = buildTable(filtered, true);
+  buildMobCards(filtered, true, 'recordsCards');
 }
 
 function updateStationFilters() {
@@ -1632,6 +1817,89 @@ function uploadToFirebase(file, itemId) {
       showToast(`${file.name} uploaded to Firebase Storage!`, 'success');
     }
   );
+}
+
+// ─── MOBILE NAVIGATION ───
+function mobNav(name, btn) {
+  // Switch page
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  // Update mobile buttons
+  document.querySelectorAll('.mob-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Mirror desktop nav active state
+  const desktopBtn = document.querySelector(`.nav-tab[data-page="${name}"]`);
+  if (desktopBtn) desktopBtn.classList.add('active');
+  // Handle form heading reset
+  if (name === 'register' && !editId) {
+    document.getElementById('formHeading').textContent    = 'New Activity';
+    document.getElementById('formSubheading').textContent = 'Record a new LAN infrastructure activity — saved to Firebase Firestore';
+    updateSnDisplay();
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ─── MOBILE CARD BUILDER ───
+function buildMobCards(rows, showActions, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty-state"><p>No activities found.</p></div>';
+    return;
+  }
+  const currentUser = auth.currentUser;
+  const currentName = currentUser ? (currentUser.displayName || currentUser.email) : '';
+
+  el.innerHTML = rows.map(a => {
+    const isOwner = currentName && a.createdBy && a.createdBy === currentName;
+    const statusKey = (a.status||'').toLowerCase();
+    const badge = {
+      'pending':   '<span class="badge badge-pending">Pending</span>',
+      'ongoing':   '<span class="badge badge-ongoing">Ongoing</span>',
+      'completed': '<span class="badge badge-done">Completed</span>',
+    }[statusKey] || `<span class="badge">${a.status||'—'}</span>`;
+
+    const actions = showActions && isOwner ? `
+      <div class="act-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editActivity('${a.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="deleteActivity('${a.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Del
+        </button>
+      </div>` : (showActions ? '<span style="font-size:0.7rem;color:var(--ura-muted);font-style:italic;margin-left:auto">View only</span>' : '');
+
+    return `
+    <div class="act-card status-${statusKey}">
+      <div class="act-card-top">
+        <span class="act-card-sn">${a.sn||'—'}</span>
+        ${badge}
+      </div>
+      <div class="act-card-brief">${a.brief||'—'}</div>
+      <div class="act-card-meta">
+        <span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${a.station||'—'}
+        </span>
+        <span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          ${fmtDate(a.startDate)||'—'}
+        </span>
+        <span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          ${a.resource||'—'}
+        </span>
+      </div>
+      ${a.nature ? `<div class="act-card-nature">${a.nature}</div>` : ''}
+      <div class="act-card-footer">
+        <span style="font-size:0.72rem;color:var(--ura-muted)">${a.location||''}</span>
+        ${actions}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ─── TOAST ───
