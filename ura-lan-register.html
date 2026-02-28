@@ -346,8 +346,7 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
   textarea { min-height: 90px; }
   .sn-display { font-size: 0.95rem; padding: 12px 13px; }
   label { font-size: 0.68rem; }
-  .form-actions { gap: 9px; flex-direction: column; }
-  .form-actions .btn { width: 100%; justify-content: center; }
+  .form-actions { gap: 10px; flex-wrap: wrap; }
 
   /* ── Tables hidden; show card list instead ── */
   .table-wrap table { display: none; }
@@ -356,19 +355,19 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
   /* ── Report controls stack vertically ── */
   .report-controls { flex-direction: column; gap: 10px; }
   .filter-group { min-width: 0 !important; width: 100%; }
-  /* PDF / Preview button row */
-  .report-btn-row { flex-direction: column; width: 100%; }
-  .report-btn-row .btn { width: 100%; justify-content: center; }
+  /* PDF / Preview button row stays inline */
+  .report-btn-row { flex-wrap: wrap; gap: 8px; }
+  .report-btn-row .btn { flex: 1; justify-content: center; min-width: 120px; }
 
-  /* ── Download All: filters and buttons stack ── */
+  /* ── Download All: filters stack, buttons stay inline ── */
   .dl-filter-row { flex-direction: column !important; gap: 10px !important; }
   .dl-filter-row .filter-group { min-width: 0 !important; width: 100%; }
-  .dl-btn-row { flex-direction: column !important; gap: 8px !important; }
-  .dl-btn-row .btn { width: 100%; justify-content: center; }
+  .dl-btn-row { flex-wrap: wrap !important; gap: 8px !important; }
+  .dl-btn-row .btn { flex: 1; justify-content: center; min-width: 130px; }
 
-  /* ── Upload links ── */
-  .upload-links-row { flex-direction: column !important; gap: 8px !important; margin-bottom: 20px !important; }
-  .upload-link { width: 100%; justify-content: center; margin: 0 !important; }
+  /* ── Upload links wrap naturally ── */
+  .upload-links-row { flex-wrap: wrap !important; gap: 8px !important; margin-bottom: 20px !important; }
+  .upload-link { margin: 0 !important; }
   .upload-zone { padding: 24px 16px; }
 
   /* ── Auth page ── */
