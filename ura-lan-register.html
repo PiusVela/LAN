@@ -179,6 +179,37 @@ tbody td{padding:9px 10px;color:var(--ura-text);vertical-align:middle;overflow:h
 .info-box{padding:14px 16px;background:var(--ura-surface);border:1px solid var(--ura-border);border-radius:var(--radius);font-size:0.83rem;color:var(--ura-muted);line-height:1.6}
 .info-box code{background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:var(--ura-light-blue)}
 
+/* ── EXPANDABLE ROW DETAILS (desktop table) ── */
+tbody tr.data-row{cursor:pointer;user-select:none}
+tbody tr.data-row:hover td{background:rgba(74,144,196,0.09)}
+tbody tr.data-row.row-open td{background:rgba(74,144,196,0.13)!important}
+tbody tr.data-row td:first-child::after{content:'▸';float:right;font-size:0.62rem;opacity:0.35;transition:transform 0.2s;display:inline-block;vertical-align:middle;margin-left:4px}
+tbody tr.data-row.row-open td:first-child::after{transform:rotate(90deg);opacity:0.8}
+tr.detail-row{display:none}
+tr.detail-row.open{display:table-row}
+tr.detail-row>td{padding:0!important;border-bottom:2px solid var(--ura-yellow)!important}
+.detail-panel{background:linear-gradient(135deg,rgba(0,48,135,0.2),rgba(10,22,40,0.96));border-top:1px solid rgba(74,144,196,0.3);padding:18px 22px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px 28px;animation:dpIn .18s ease}
+@keyframes dpIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.dp-field{display:flex;flex-direction:column;gap:3px}
+.dp-field.full{grid-column:1/-1}
+.dp-label{font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ura-muted)}
+.dp-value{font-size:0.86rem;color:var(--ura-text);line-height:1.5;word-break:break-word}
+.dp-value.hi{color:#fff;font-weight:600}
+.dp-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--ura-border);margin-top:2px}
+
+/* ── EXPANDABLE CARD DETAILS (mobile) ── */
+.act-card{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.act-card-chevron{width:18px;height:18px;flex-shrink:0;color:var(--ura-muted);transition:transform .2s,color .2s}
+.act-card.card-open .act-card-chevron{transform:rotate(180deg);color:var(--ura-yellow)}
+.act-card-detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid var(--ura-border);animation:dpIn .18s ease}
+.act-card-detail.open{display:block}
+.acd-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;margin-bottom:10px}
+.acd-field{display:flex;flex-direction:column;gap:2px}
+.acd-field.full{grid-column:1/-1}
+.acd-label{font-size:0.59rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ura-muted)}
+.acd-value{font-size:0.82rem;color:var(--ura-text);line-height:1.4;word-break:break-word}
+.acd-actions{display:flex;gap:8px;flex-wrap:wrap;padding-top:9px;border-top:1px solid var(--ura-border)}
+
 /* ════════════════════════════════════════════
    MOBILE BOTTOM NAVIGATION BAR
 ════════════════════════════════════════════ */
@@ -1417,45 +1448,63 @@ function handleResourceChange() {
 
 
 function buildTable(rows, showActions) {
-  // Column widths tuned to fill ~100% without overflow
   const colWidths = showActions
-    ? ['7%','13%','14%','9%','22%','8%','8%','11%','6%','7%']   // with actions
-    : ['7%','14%','15%','10%','26%','9%','9%','10%'];            // dashboard/report
-
+    ? ['7%','13%','14%','9%','22%','8%','8%','11%','6%','7%']
+    : ['7%','14%','15%','10%','26%','9%','9%','10%'];
   const colDefs = showActions
     ? ['SN','Brief of Activity','Station','Location','Nature of Activity','Start Date','End Date','Resource','Status','Actions']
     : ['SN','Brief of Activity','Station','Location','Nature of Activity','Start Date','End Date','Resource'];
-
-  let colgroup = `<colgroup>${colWidths.map(w=>`<col style="width:${w}">`).join('')}</colgroup>`;
-  let h = `<table><thead><tr>${colDefs.map(c=>`<th>${c}</th>`).join('')}</tr></thead>${colgroup}<tbody>`;
+  const colspan = colDefs.length;
+  let h = `<table><colgroup>${colWidths.map(w=>`<col style="width:${w}">`).join('')}</colgroup>
+  <thead><tr>${colDefs.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
 
   rows.forEach(a => {
-    const badge = {
-      'Pending':   '<span class="badge badge-pending">Pending</span>',
-      'Ongoing':   '<span class="badge badge-ongoing">Ongoing</span>',
-      'Completed': '<span class="badge badge-done">Completed</span>',
-    }[a.status] || `<span class="badge">${a.status||'—'}</span>`;
+    const badge = {'Pending':'<span class="badge badge-pending">Pending</span>','Ongoing':'<span class="badge badge-ongoing">Ongoing</span>','Completed':'<span class="badge badge-done">Completed</span>'}[a.status]||`<span class="badge">${a.status||'—'}</span>`;
+    const esc = s=>(s||'').replace(/"/g,'&quot;');
+    const short = (s,n)=>s&&s.length>n?s.substring(0,n)+'…':(s||'—');
+    const rid = 'row_'+a.id, did = 'det_'+a.id;
 
-    const esc = s => (s||'').replace(/"/g,'&quot;');
-    const short = (s, n) => s && s.length > n ? s.substring(0, n) + '…' : (s||'—');
-
-    h += `<tr>
+    h += `<tr class="data-row" id="${rid}" onclick="toggleRowDetail('${a.id}')">
       <td style="font-family:var(--font-head);font-weight:700;color:var(--ura-yellow)">${a.sn||'—'}</td>
-      <td title="${esc(a.brief)}">${short(a.brief, 28)}</td>
-      <td style="font-size:0.79rem" title="${esc(a.station)}">${short(a.station, 30)}</td>
-      <td style="font-size:0.79rem" title="${esc(a.location)}">${short(a.location, 18)}</td>
-      <td style="font-size:0.79rem" title="${esc(a.nature)}">${short(a.nature, 55)}</td>
-      <td>${fmtDate(a.startDate)}</td>
-      <td>${fmtDate(a.endDate)}</td>
-      <td title="${esc(a.resource)}">${short(a.resource, 20)}</td>
-      ${showActions ? `<td>${badge}</td><td><div style="display:flex;gap:4px">
+      <td title="${esc(a.brief)}">${short(a.brief,28)}</td>
+      <td style="font-size:.79rem" title="${esc(a.station)}">${short(a.station,30)}</td>
+      <td style="font-size:.79rem" title="${esc(a.location)}">${short(a.location,18)}</td>
+      <td style="font-size:.79rem" title="${esc(a.nature)}">${short(a.nature,55)}</td>
+      <td>${fmtDate(a.startDate)}</td><td>${fmtDate(a.endDate)}</td>
+      <td title="${esc(a.resource)}">${short(a.resource,20)}</td>
+      ${showActions?`<td>${badge}</td><td><div style="display:flex;gap:4px" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="editActivity('${a.id}')">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteActivity('${a.id}')">Del</button>
-      </div></td>` : `<td>${badge}</td>`}
-    </tr>`;
+      </div></td>`:`<td>${badge}</td>`}
+    </tr>
+    <tr class="detail-row" id="${did}"><td colspan="${colspan}"><div class="detail-panel">
+      <div class="dp-field"><span class="dp-label">Serial No.</span><span class="dp-value hi">${a.sn||'—'}</span></div>
+      <div class="dp-field"><span class="dp-label">Status</span><span class="dp-value">${badge}</span></div>
+      <div class="dp-field"><span class="dp-label">Station</span><span class="dp-value">${a.station||'—'}</span></div>
+      <div class="dp-field"><span class="dp-label">Location / Floor</span><span class="dp-value">${a.location||'—'}</span></div>
+      <div class="dp-field"><span class="dp-label">Resource Person</span><span class="dp-value">${a.resource||'—'}</span></div>
+      <div class="dp-field"><span class="dp-label">Start Date</span><span class="dp-value">${fmtDate(a.startDate)}</span></div>
+      <div class="dp-field"><span class="dp-label">End Date</span><span class="dp-value">${fmtDate(a.endDate)||'—'}</span></div>
+      <div class="dp-field full"><span class="dp-label">Brief of Activity</span><span class="dp-value hi">${a.brief||'—'}</span></div>
+      <div class="dp-field full"><span class="dp-label">Nature of Activity</span><span class="dp-value">${a.nature||'—'}</span></div>
+      ${a.remarks?`<div class="dp-field full"><span class="dp-label">Remarks / Notes</span><span class="dp-value">${a.remarks}</span></div>`:''}
+      ${showActions?`<div class="dp-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editActivity('${a.id}')">✏ Edit Activity</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteActivity('${a.id}')">✕ Delete</button>
+      </div>`:''}
+    </div></td></tr>`;
   });
-  h += '</tbody></table>';
-  return h;
+  return h + '</tbody></table>';
+}
+
+function toggleRowDetail(id) {
+  const row = document.getElementById('row_'+id);
+  const det = document.getElementById('det_'+id);
+  if (!row||!det) return;
+  const opening = !det.classList.contains('open');
+  document.querySelectorAll('tr.detail-row.open').forEach(r=>r.classList.remove('open'));
+  document.querySelectorAll('tr.data-row.row-open').forEach(r=>r.classList.remove('row-open'));
+  if (opening) { det.classList.add('open'); row.classList.add('row-open'); }
 }
 
 function fmtDate(d) {
@@ -1892,68 +1941,53 @@ function syncMobNav(pageName) {
 function buildMobCards(rows, showActions, containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  if (!rows.length) {
-    el.innerHTML = '<div class="empty-state"><p>No activities found.</p></div>';
-    return;
-  }
+  if (!rows.length) { el.innerHTML='<div class="empty-state"><p>No activities found.</p></div>'; return; }
   el.innerHTML = rows.map(a => {
-    const sk = (a.status || 'pending').toLowerCase();
-    const badge = {
-      pending:   '<span class="badge badge-pending">Pending</span>',
-      ongoing:   '<span class="badge badge-ongoing">Ongoing</span>',
-      completed: '<span class="badge badge-done">Completed</span>',
-    }[sk] || `<span class="badge">${a.status||'—'}</span>`;
-
-    const actionBtns = showActions ? `
-      <div class="act-card-btns">
-        <button class="btn btn-secondary btn-sm" onclick="editActivity('${a.id}')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>Edit
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="deleteActivity('${a.id}')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-          </svg>Del
-        </button>
+    const sk = (a.status||'pending').toLowerCase();
+    const badge = {pending:'<span class="badge badge-pending">Pending</span>',ongoing:'<span class="badge badge-ongoing">Ongoing</span>',completed:'<span class="badge badge-done">Completed</span>'}[sk]||`<span class="badge">${a.status||'—'}</span>`;
+    const actionBtns = showActions ? `<div class="acd-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-secondary btn-sm" onclick="editActivity('${a.id}')">✏ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteActivity('${a.id}')">✕ Delete</button>
       </div>` : '';
-
-    return `<div class="act-card s-${sk}">
+    return `<div class="act-card s-${sk}" id="card_${a.id}" onclick="toggleCard('${a.id}')">
       <div class="act-card-head">
         <span class="act-card-sn">${a.sn||'—'}</span>
-        ${badge}
+        <div style="display:flex;align-items:center;gap:6px">
+          ${badge}
+          <svg class="act-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
       </div>
       <div class="act-card-brief">${a.brief||'—'}</div>
       <div class="act-card-meta">
-        <span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>${a.station||'—'}
-        </span>
-        <span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>${fmtDate(a.startDate)||'—'}
-        </span>
-        <span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-          </svg>${a.resource||'—'}
-        </span>
-        ${a.location ? `<span>${a.location}</span>` : ''}
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${a.station||'—'}</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${fmtDate(a.startDate)||'—'}</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>${a.resource||'—'}</span>
       </div>
-      ${a.nature ? `<div class="act-card-nature">${a.nature}</div>` : ''}
-      <div class="act-card-foot">
+      <div class="act-card-detail" id="carddet_${a.id}">
+        <div class="acd-grid">
+          <div class="acd-field"><span class="acd-label">Station</span><span class="acd-value">${a.station||'—'}</span></div>
+          <div class="acd-field"><span class="acd-label">Location / Floor</span><span class="acd-value">${a.location||'—'}</span></div>
+          <div class="acd-field"><span class="acd-label">Start Date</span><span class="acd-value">${fmtDate(a.startDate)||'—'}</span></div>
+          <div class="acd-field"><span class="acd-label">End Date</span><span class="acd-value">${fmtDate(a.endDate)||'—'}</span></div>
+          <div class="acd-field"><span class="acd-label">Resource Person</span><span class="acd-value">${a.resource||'—'}</span></div>
+          <div class="acd-field"><span class="acd-label">Status</span><span class="acd-value">${badge}</span></div>
+          <div class="acd-field full"><span class="acd-label">Nature of Activity</span><span class="acd-value">${a.nature||'—'}</span></div>
+          ${a.remarks?`<div class="acd-field full"><span class="acd-label">Remarks / Notes</span><span class="acd-value">${a.remarks}</span></div>`:''}
+        </div>
         ${actionBtns}
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleCard(id) {
+  const card = document.getElementById('card_'+id);
+  const det  = document.getElementById('carddet_'+id);
+  if (!card||!det) return;
+  const opening = !det.classList.contains('open');
+  document.querySelectorAll('.act-card-detail.open').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.act-card.card-open').forEach(c=>c.classList.remove('card-open'));
+  if (opening) { det.classList.add('open'); card.classList.add('card-open'); card.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 }
 
 // ─── TOAST ───
